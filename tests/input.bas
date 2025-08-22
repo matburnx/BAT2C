@@ -1,3 +1,4 @@
+LABEL foo
 PRINT "How many fibonacci numbers do you want?"
 INPUT nums
 
@@ -8,5 +9,6 @@ WHILE nums > 0 REPEAT
     LET c = a + b
     LET a = b
     LET b = c
+    GOTO foo
     LET nums = nums - 1
 ENDWHILE

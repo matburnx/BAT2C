@@ -242,23 +242,37 @@ void statement(Parser * parser) {
   } else if(check_token(parser,IF)) {
     printf("STATEMENT: IF\n");
     next_token(parser);
+    emit(parser->emitter,"if(");
+
     comparison(parser);
+
     match(parser,THEN);
     nl(parser);
+    emit_line(parser->emitter,"){");
+
     while(!check_token(parser,ENDIF)) {
       statement(parser);
     }
+
     match(parser,ENDIF);
+    emit_line(parser->emitter,"}");
   } else if(check_token(parser,WHILE)) {
     printf("STATEMENT: WHILE\n");
     next_token(parser);
+    emit(parser->emitter,"while(");
+
     comparison(parser);
+
     match(parser,REPEAT);
     nl(parser);
+    emit_line(parser->emitter,"){");
+
     while(!check_token(parser,ENDWHILE)) {
       statement(parser);
     }
+
     match(parser,ENDWHILE);
+    emit_line(parser->emitter,"}");
   } else if(check_token(parser,LABEL)) {
     printf("STATEMENT: LABEL\n");
     next_token(parser);
@@ -269,12 +283,19 @@ void statement(Parser * parser) {
     }
     parser->labelsDeclared = add_label(parser->labelsDeclared,parser->currentToken->text);
 
+    emit(parser->emitter,parser->currentToken->text);
+    emit_line(parser->emitter,":");
+
     match(parser,IDENT);
   } else if(check_token(parser,GOTO)) {
     printf("STATEMENT: GOTO\n");
     next_token(parser);
 
     parser->labelsGotoed = add_label(parser->labelsGotoed,parser->currentToken->text);
+
+    emit(parser->emitter,"goto ");
+    emit(parser->emitter,parser->currentToken->text);
+    emit_line(parser->emitter,";");
 
     match(parser,IDENT);
   } else if(check_token(parser,LET)) {
