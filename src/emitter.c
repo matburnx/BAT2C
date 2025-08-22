@@ -32,6 +32,7 @@ Emitter * init_emitter(char * path) {
   assert(emitter);
   emitter->path=strdup(path);
   emitter->code=NULL;
+  emitter->variables=NULL;
   emitter->header=NULL;
   return emitter;
 }
@@ -39,17 +40,18 @@ Emitter * init_emitter(char * path) {
 void free_emitter(Emitter * emitter) {
   free(emitter->path);
   free(emitter->code);
+  free(emitter->variables);
   free(emitter->header);
   free(emitter);
 }
 
-void emit(Emitter * emitter, char * code) {
+void emit_code(Emitter * emitter, char * code) {
   char * tmp = emitter->code;
   emitter->code = str_concat(emitter->code, code);
   free(tmp);
 }
 
-void emit_line(Emitter * emitter, char * line) {
+void emit_code_line(Emitter * emitter, char * line) {
   char * tmp = emitter->code;
   char * newline = str_concat(line,"\n");
   emitter->code = str_concat(emitter->code, newline);
@@ -57,7 +59,21 @@ void emit_line(Emitter * emitter, char * line) {
   free(newline);
 }
 
-void header_line(Emitter * emitter, char * header) {
+void emit_variable(Emitter * emitter, char * variable) {
+  char * tmp = emitter->variables;
+  emitter->variables = str_concat(emitter->variables, variable);
+  free(tmp);
+}
+
+void emit_variable_line(Emitter * emitter, char * variable) {
+  char * tmp = emitter->variables;
+  char * newline = str_concat(variable,"\n");
+  emitter->variables = str_concat(emitter->variables, newline);
+  free(tmp);
+  free(newline);
+}
+
+void emit_header_line(Emitter * emitter, char * header) {
   char * tmp = emitter->header;
   char * newline = str_concat(header,"\n");
   emitter->header = str_concat(emitter->header, newline);
@@ -68,12 +84,18 @@ void header_line(Emitter * emitter, char * header) {
 void write_file(Emitter * emitter) {
   FILE * file = fopen(emitter->path, "w");
   if(emitter->header) {
-    printf("header to file:\n%s\n", emitter->header);
-    fprintf(file, "%s\n", emitter->header);
+    printf("header to file:\n%s", emitter->header);
+    fprintf(file, "%s", emitter->header);
   }
+
+  if(emitter->variables) {
+    printf("variables to file:\n%s", emitter->variables);
+    fprintf(file, "%s", emitter->variables);
+  }
+
   if(emitter->code) {
-    printf("code to file:\n%s\n", emitter->code);
-    fprintf(file, "%s\n", emitter->code);
+    printf("code to file:\n%s", emitter->code);
+    fprintf(file, "%s", emitter->code);
   }
   fclose(file);
 }
