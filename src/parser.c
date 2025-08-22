@@ -14,7 +14,6 @@ void next_token(Parser * parser) {
 
   if(parser->peekToken!=NULL) {
     parser->currentToken=new_token(parser->peekToken->text,parser->peekToken->type);
-//    free_token(parser->peekToken);
   }
 
   parser->peekToken=get_token(parser->lexer);
@@ -49,7 +48,6 @@ void match(Parser * parser, Token_type kind) {
 }
 
 Parser * init_parser(Lexer * lex, Emitter * emitter) {
-//Parser * init_parser(Lexer * lex) {
   Parser * parser = (Parser *) malloc(sizeof(Parser));
   assert(parser);
   
@@ -200,79 +198,121 @@ void comparison(Parser * parser) {
   }
 }
 
+void add_variable_type(Parser * parser) {
+  int i = strlen(parser->emitter->code)-1;
+  int is_string=0;
+  int is_float=0;
+  int max_length=0;
+  int current_length=0;
+  char c;
+  while(i>=0 && parser->emitter->code[i]!='=' && parser->emitter->code[i]!='\n') {
+    c=parser->emitter->code[i];
+    --i;
+    if(c=='"') {
+      is_string=1;
+      continue;
+    } else if(c=='.') {
+      is_float=1;
+    } else if(is_digit(c)) {
+      ++current_length;
+      if(current_length>max_length) {
+        max_length=current_length;
+      }
+    } else {
+      current_length=0;
+    }
+  }
+
+  if(is_string) {
+    emit_variable(parser->emitter, "char * ");
+  } else if(is_float) {
+
+  } else {
+    if(max_length<SHORT_MAX_LENGTH) {
+      emit_variable(parser->emitter, "short ");
+    } else if(max_length<INT_MAX_LENGTH) {
+      emit_variable(parser->emitter, "int ");
+    } else if(max_length<LONG_MAX_LENGTH) {
+      emit_variable(parser->emitter, "long ");
+    } else {
+      emit_variable(parser->emitter, "long long ");
+    }
+  }
+}
+
 void statement(Parser * parser) {
   if(check_token(parser,PRINT)) {
     printf("STATEMENT: PRINT\n");
     if(!check_label(parser->headersInclude,"stdio")) {
       parser->headersInclude = add_label(parser->headersInclude,"stdio");
       char * tmp = strdup("#include <stdio.h>");
-      header_line(parser->emitter,tmp);
+      emit_header_line(parser->emitter,tmp);
       free(tmp);
     }
     next_token(parser);
     if(check_token(parser,STRING)) {
       char * line = strdup("printf(\"");
-      emit(parser->emitter,line);
-      emit(parser->emitter,parser->currentToken->text);
+      emit_code(parser->emitter,line);
+      emit_code(parser->emitter,parser->currentToken->text);
       free(line);
       line = strdup("\\n\");");
-      emit_line(parser->emitter,line);
+      emit_code_line(parser->emitter,line);
       //int length = snprintf(line, MAX_LINE_LENGTH,"printf(\"%s\\n\");", parser->currentToken->text) + 1;
       //free(line);
       //line = (char *) malloc(sizeof(char)*(length+1));
       //assert(line);
       //snprintf(line,length,"printf(\"%s\\n\");", parser->currentToken->text);
-      //emit_line(parser->emitter,line);
+      //emit_code_line(parser->emitter,line);
       
-      free(line); //Maybe not needed
+      free(line);
 
       next_token(parser);
     } else {
-      /*
+      /* TODO
       if(is_float(parser->currentToken->text)) {
-       //emit(parser->emitter,"printf(\"%f\\n\"), ");
+       //emit_code(parser->emitter,"printf(\"%f\\n\"), ");
       } else {
-       //emit(parser->emitter,"printf(\"%d\\n\"), ");
+       //emit_code(parser->emitter,"printf(\"%d\\n\"), ");
       }
       */
-     emit(parser->emitter,"printf(\"%f\\n\", ");
+     emit_code(parser->emitter,"printf(\"%f\\n\", ");
      expression(parser);
-     emit_line(parser->emitter,");");
+     emit_code_line(parser->emitter,");");
     }
   } else if(check_token(parser,IF)) {
     printf("STATEMENT: IF\n");
     next_token(parser);
-    emit(parser->emitter,"if(");
+    emit_code(parser->emitter,"if(");
 
     comparison(parser);
 
     match(parser,THEN);
     nl(parser);
-    emit_line(parser->emitter,"){");
+    emit_code_line(parser->emitter,"){");
 
     while(!check_token(parser,ENDIF)) {
       statement(parser);
     }
 
     match(parser,ENDIF);
-    emit_line(parser->emitter,"}");
+    emit_code_line(parser->emitter,"}");
   } else if(check_token(parser,WHILE)) {
     printf("STATEMENT: WHILE\n");
     next_token(parser);
-    emit(parser->emitter,"while(");
+    emit_code(parser->emitter,"while(");
 
     comparison(parser);
 
     match(parser,REPEAT);
     nl(parser);
-    emit_line(parser->emitter,"){");
+    emit_code_line(parser->emitter,"){");
 
     while(!check_token(parser,ENDWHILE)) {
       statement(parser);
     }
 
     match(parser,ENDWHILE);
-    emit_line(parser->emitter,"}");
+    emit_code_line(parser->emitter,"}");
   } else if(check_token(parser,LABEL)) {
     printf("STATEMENT: LABEL\n");
     next_token(parser);
@@ -283,8 +323,8 @@ void statement(Parser * parser) {
     }
     parser->labelsDeclared = add_label(parser->labelsDeclared,parser->currentToken->text);
 
-    emit(parser->emitter,parser->currentToken->text);
-    emit_line(parser->emitter,":");
+    emit_code(parser->emitter,parser->currentToken->text);
+    emit_code_line(parser->emitter,":");
 
     match(parser,IDENT);
   } else if(check_token(parser,GOTO)) {
@@ -293,23 +333,38 @@ void statement(Parser * parser) {
 
     parser->labelsGotoed = add_label(parser->labelsGotoed,parser->currentToken->text);
 
-    emit(parser->emitter,"goto ");
-    emit(parser->emitter,parser->currentToken->text);
-    emit_line(parser->emitter,";");
+    emit_code(parser->emitter,"goto ");
+    emit_code(parser->emitter,parser->currentToken->text);
+    emit_code_line(parser->emitter,";");
 
     match(parser,IDENT);
   } else if(check_token(parser,LET)) {
     printf("STATEMENT: LET\n");
     next_token(parser);
+    int has_type=1;
 
     if(!check_label(parser->symbols,parser->currentToken->text)) {
       parser->symbols = add_label(parser->symbols,parser->currentToken->text);
+      has_type=0;
     }
+    char * var_name = strdup(parser->currentToken->text);
+    emit_code(parser->emitter, var_name);
+    emit_code(parser->emitter, " = ");
 
     match(parser,IDENT);
     match(parser,EQ);
 
     expression(parser);
+    
+    if(has_type==0) {
+      add_variable_type(parser);
+      emit_variable(parser->emitter, var_name);
+      emit_variable_line(parser->emitter, ";");
+    }
+
+    emit_code_line(parser->emitter, ";");
+
+    free(var_name);
   } else if(check_token(parser,INPUT)) {
     printf("STATEMENT: INPUT\n");
     next_token(parser);
@@ -329,16 +384,16 @@ void statement(Parser * parser) {
 void program(Parser * parser) {
   printf("PROGRAM\n");
 
-  emit_line(parser->emitter, "int main(void) {");
-
   skip_newlines(parser);
   
   while(!check_token(parser, ENDOF)) {
     statement(parser);
   }
 
-  emit_line(parser->emitter, "return 0;");
-  emit_line(parser->emitter, "}");
+  emit_header_line(parser->emitter, "int main(void) {");
+
+  emit_code_line(parser->emitter, "return 0;");
+  emit_code_line(parser->emitter, "}");
 
   LabelList * label = parser->labelsGotoed;
   while(label) {
