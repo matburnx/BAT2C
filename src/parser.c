@@ -26,16 +26,6 @@ void next_token(Parser * parser) {
     free_token(tmp2);
   }
 
-//  if(parser->peekToken) {
-//    printf("NEXT TOKEN\n");
-//    if(parser->peekToken->text[0]=='\n') {
-//      printf("\\n %d\n", parser->peekToken->type);
-//    } else if(parser->peekToken->text[0]=='\0') {
-//      printf("\\0 %d\n", parser->peekToken->type);
-//    } else {
-//      printf("%s %d\n", parser->peekToken->text, parser->peekToken->type);
-//    }
-//  }
 }
 
 void match(Parser * parser, Token_type kind) {
@@ -45,42 +35,6 @@ void match(Parser * parser, Token_type kind) {
     exit(EXIT_FAILURE);
   }
   next_token(parser);
-}
-
-Parser * init_parser(Lexer * lex, Emitter * emitter) {
-  Parser * parser = (Parser *) malloc(sizeof(Parser));
-  assert(parser);
-  
-  parser->lexer=lex;
-  parser->emitter=emitter;
-
-  parser->currentToken=NULL;
-  parser->peekToken=NULL;
-
-  parser->symbols=NULL;
-  parser->labelsDeclared=NULL;
-  parser->labelsGotoed=NULL;
-  parser->headersInclude=NULL;
-  
-  next_token(parser);
-  next_token(parser);
-  
-  return parser;
-}
-
-void free_parser(Parser * parser) {
-  free_lexer(parser->lexer);
-  free_token(parser->currentToken);
-  free_token(parser->peekToken);
-
-  free_emitter(parser->emitter);
-
-  free_label_list(parser->symbols);
-  free_label_list(parser->labelsDeclared);
-  free_label_list(parser->labelsGotoed);
-  free_label_list(parser->headersInclude);
-
-  free(parser);
 }
 
 LabelList * new_label(char * text) {
@@ -124,6 +78,92 @@ int check_label(LabelList * list, char * text) {
   return 1;
 }
 
+VariableList * new_variable(char * text, Data_type type) {
+  VariableList * label=(VariableList *) malloc(sizeof(VariableList));
+  assert(label);
+  label->text=strdup(text);
+  label->type=type;
+  label->next=NULL;
+  return label;
+}
+
+void free_variable_list(VariableList * list) {
+  VariableList * temp;
+  while(list) {
+    temp=list;
+    list=list->next;
+    free(temp->text);
+    free(temp);
+  }
+}
+
+VariableList * add_variable(VariableList * list, char * text, Data_type type) {
+  if(list==NULL) {
+    list=new_variable(text, type);
+    return list;
+  }
+  VariableList * temp=list;
+  while(temp->next) {
+    temp=temp->next;
+  }
+  temp->next=new_variable(text, type);
+  return list;
+}
+
+int check_variable(VariableList * list, char * text) {
+  while(list && strcmp(list->text,text)!=0) {
+    list=list->next;
+  }
+  if(list==NULL) {
+    return 0;
+  }
+  return 1;
+}
+
+VariableList * get_variable(VariableList * list, char * text) {
+  VariableList * var=list;
+  while(var && strcmp(var->text,text)!=0) {
+    var=var->next;
+  }
+  return var;
+}
+
+Parser * init_parser(Lexer * lex, Emitter * emitter) {
+  Parser * parser = (Parser *) malloc(sizeof(Parser));
+  assert(parser);
+  
+  parser->lexer=lex;
+  parser->emitter=emitter;
+
+  parser->currentToken=NULL;
+  parser->peekToken=NULL;
+
+  parser->symbols=NULL;
+  parser->labelsDeclared=NULL;
+  parser->labelsGotoed=NULL;
+  parser->headersInclude=NULL;
+  
+  next_token(parser);
+  next_token(parser);
+  
+  return parser;
+}
+
+void free_parser(Parser * parser) {
+  free_lexer(parser->lexer);
+  free_token(parser->currentToken);
+  free_token(parser->peekToken);
+
+  free_emitter(parser->emitter);
+
+  free_variable_list(parser->symbols);
+  free_label_list(parser->labelsDeclared);
+  free_label_list(parser->labelsGotoed);
+  free_label_list(parser->headersInclude);
+
+  free(parser);
+}
+
 void skip_newlines(Parser * parser) {
   while(check_token(parser,NEWLINE)) {
     next_token(parser);
@@ -138,13 +178,15 @@ void nl(Parser * parser) {
 void primary(Parser * parser) {
   printf("PRIMARY: %s\n", parser->currentToken->text);
   if(check_token(parser,NUMBER)){
+    emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
   } else if(check_token(parser,IDENT)){
-    if(!check_label(parser->symbols,parser->currentToken->text)) {
+    if(!check_variable(parser->symbols,parser->currentToken->text)) {
       printf("\tVariable not declared %s line %d column %d\n", parser->currentToken->text, parser->lexer->currentLine+1, parser->lexer->currentPosition+1);
       exit(EXIT_FAILURE);
     }
 
+    emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
   } else {
     printf("\tExpected number or variable at `%s` line %d column %d\n", parser->currentToken->text, parser->lexer->currentLine+1, parser->lexer->currentPosition+1);
@@ -155,6 +197,7 @@ void primary(Parser * parser) {
 void unary(Parser * parser) {
   printf("UNARY\n");
   if(check_token(parser,MINUS) || check_token(parser,PLUS)){
+    emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
   }
   primary(parser);
@@ -164,6 +207,7 @@ void term(Parser * parser) {
   printf("TERM\n");
   unary(parser);
   while(check_token(parser,ASTERISK) || check_token(parser,SLASH)){
+    emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
     unary(parser);
   }
@@ -173,6 +217,7 @@ void expression(Parser * parser) {
   printf("EXPRESSION\n");
   term(parser);
   while(check_token(parser,MINUS) || check_token(parser,PLUS)){
+    emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
     term(parser);
   }
@@ -186,6 +231,7 @@ void comparison(Parser * parser) {
   printf("COMPARISON\n");
   expression(parser);
   if(is_comparison_operator(parser)) {
+    emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
     expression(parser);
   } else {
@@ -193,17 +239,19 @@ void comparison(Parser * parser) {
     exit(EXIT_FAILURE);
   }
   while(is_comparison_operator(parser)) {
+    emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
     expression(parser);
   }
 }
 
-void add_variable_type(Parser * parser) {
+void add_variable_type(Parser * parser, char * variable_name) {
   int i = strlen(parser->emitter->code)-1;
   int is_string=0;
-  int is_float=0;
+  int is_double=0;
   int max_length=0;
   int current_length=0;
+  Data_type type;
   char c;
   while(i>=0 && parser->emitter->code[i]!='=' && parser->emitter->code[i]!='\n') {
     c=parser->emitter->code[i];
@@ -212,7 +260,7 @@ void add_variable_type(Parser * parser) {
       is_string=1;
       continue;
     } else if(c=='.') {
-      is_float=1;
+      is_double=1;
     } else if(is_digit(c)) {
       ++current_length;
       if(current_length>max_length) {
@@ -225,19 +273,84 @@ void add_variable_type(Parser * parser) {
 
   if(is_string) {
     emit_variable(parser->emitter, "char * ");
-  } else if(is_float) {
-
+    type=STRING_TYPE;
+  } else if(is_double) {
+    emit_variable(parser->emitter, "double ");
+    type=DOUBLE;
   } else {
     if(max_length<SHORT_MAX_LENGTH) {
       emit_variable(parser->emitter, "short ");
+      type=SHORT;
     } else if(max_length<INT_MAX_LENGTH) {
       emit_variable(parser->emitter, "int ");
+      type=INT;
     } else if(max_length<LONG_MAX_LENGTH) {
       emit_variable(parser->emitter, "long ");
+      type=LONG;
     } else {
       emit_variable(parser->emitter, "long long ");
+      type=LONGLONG;
     }
   }
+  parser->symbols = add_variable(parser->symbols,variable_name, type);
+}
+
+char * data_format(VariableList * var) {
+  if(var==NULL) {
+    printf("\tWarning format for NULL variable\n");
+    return NULL;
+  }
+  char * format;
+  switch(var->type) {
+    case STRING_TYPE:
+      format = (char *) malloc(sizeof(char)*3);
+      format[0]='%';
+      format[1]='s';
+      format[2]='\0';
+      break;
+    case INT:
+      format = (char *) malloc(sizeof(char)*3);
+      format[0]='%';
+      format[1]='d';
+      format[2]='\0';
+      break;
+    case SHORT:
+      format = (char *) malloc(sizeof(char)*4);
+      format[0]='%';
+      format[1]='h';
+      format[2]='d';
+      format[3]='\0';
+      break;
+    case LONG:
+      format = (char *) malloc(sizeof(char)*4);
+      format[0]='%';
+      format[1]='l';
+      format[2]='d';
+      format[3]='\0';
+      break;
+    case LONGLONG:
+      format = (char *) malloc(sizeof(char)*5);
+      format[0]='%';
+      format[1]='l';
+      format[2]='l';
+      format[3]='d';
+      format[4]='\0';
+      break;
+    case DOUBLE:
+      format = (char *) malloc(sizeof(char)*4);
+      format[0]='%';
+      format[1]='l';
+      format[2]='f';
+      format[3]='\0';
+      break;
+    default:
+      format = (char *) malloc(sizeof(char)*3);
+      format[0]='%';
+      format[1]='d';
+      format[2]='\0';
+      break;
+  }
+  return format;
 }
 
 void statement(Parser * parser) {
@@ -257,27 +370,31 @@ void statement(Parser * parser) {
       free(line);
       line = strdup("\\n\");");
       emit_code_line(parser->emitter,line);
-      //int length = snprintf(line, MAX_LINE_LENGTH,"printf(\"%s\\n\");", parser->currentToken->text) + 1;
-      //free(line);
-      //line = (char *) malloc(sizeof(char)*(length+1));
-      //assert(line);
-      //snprintf(line,length,"printf(\"%s\\n\");", parser->currentToken->text);
-      //emit_code_line(parser->emitter,line);
       
       free(line);
 
       next_token(parser);
     } else {
-      /* TODO
-      if(is_float(parser->currentToken->text)) {
-       //emit_code(parser->emitter,"printf(\"%f\\n\"), ");
-      } else {
-       //emit_code(parser->emitter,"printf(\"%d\\n\"), ");
+      if(!check_variable(parser->symbols,parser->currentToken->text)) {
+        //parser->symbols = add_variable(parser->symbols,parser->currentToken->text);
+        printf("\tVariable used but not declared %s line %d column %d\n", parser->currentToken->text, parser->lexer->currentLine+1, parser->lexer->currentPosition+1);
+        exit(EXIT_FAILURE);
       }
-      */
-     emit_code(parser->emitter,"printf(\"%f\\n\", ");
-     expression(parser);
-     emit_code_line(parser->emitter,");");
+
+      emit_code(parser->emitter,"printf(\"");
+      VariableList * var = get_variable(parser->symbols,parser->currentToken->text);
+      if(var==NULL) {
+        printf("\tVariable used but not declared %s line %d column %d\n", parser->currentToken->text, parser->lexer->currentLine+1, parser->lexer->currentPosition+1);
+        exit(EXIT_FAILURE);
+      }
+
+      char * format = data_format(var);
+      emit_code(parser->emitter,format);
+      free(format);
+
+      emit_code(parser->emitter,"\\n\", ");
+      expression(parser);
+      emit_code_line(parser->emitter,");");
     }
   } else if(check_token(parser,IF)) {
     printf("STATEMENT: IF\n");
@@ -343,8 +460,7 @@ void statement(Parser * parser) {
     next_token(parser);
     int has_type=1;
 
-    if(!check_label(parser->symbols,parser->currentToken->text)) {
-      parser->symbols = add_label(parser->symbols,parser->currentToken->text);
+    if(!check_variable(parser->symbols,parser->currentToken->text)) {
       has_type=0;
     }
     char * var_name = strdup(parser->currentToken->text);
@@ -354,10 +470,17 @@ void statement(Parser * parser) {
     match(parser,IDENT);
     match(parser,EQ);
 
-    expression(parser);
+    if(!check_token(parser,STRING)) {
+      expression(parser);
+    } else {
+      emit_code(parser->emitter,"\"");
+      emit_code(parser->emitter,parser->currentToken->text);
+      emit_code(parser->emitter,"\"");
+      next_token(parser);
+    }
     
     if(has_type==0) {
-      add_variable_type(parser);
+      add_variable_type(parser, var_name);
       emit_variable(parser->emitter, var_name);
       emit_variable_line(parser->emitter, ";");
     }
@@ -368,11 +491,36 @@ void statement(Parser * parser) {
   } else if(check_token(parser,INPUT)) {
     printf("STATEMENT: INPUT\n");
     next_token(parser);
-    
-    if(!check_label(parser->symbols,parser->currentToken->text)) {
-      parser->symbols = add_label(parser->symbols,parser->currentToken->text);
+    if(!check_label(parser->headersInclude,"stdio")) {
+      parser->headersInclude = add_label(parser->headersInclude,"stdio");
+      char * tmp = strdup("#include <stdio.h>");
+      emit_header_line(parser->emitter,tmp);
+      free(tmp);
     }
     
+    if(!check_variable(parser->symbols,parser->currentToken->text)) {
+      //parser->symbols = add_variable(parser->symbols,parser->currentToken->text);
+      printf("\tVariable used but not declared %s line %d column %d\n", parser->currentToken->text, parser->lexer->currentLine+1, parser->lexer->currentPosition+1);
+      exit(EXIT_FAILURE);
+    }
+
+    emit_code(parser->emitter,"scanf(\"");
+    VariableList * var = get_variable(parser->symbols,parser->currentToken->text);
+    if(var==NULL) {
+      printf("\tVariable used but not declared %s line %d column %d\n", parser->currentToken->text, parser->lexer->currentLine+1, parser->lexer->currentPosition+1);
+      exit(EXIT_FAILURE);
+    }
+    char * format = data_format(var);
+    emit_code(parser->emitter,format);
+    free(format);
+    if(var->type!=STRING_TYPE) {
+      emit_code(parser->emitter,"\", &");
+    } else {
+      emit_code(parser->emitter,"\", ");
+    }
+    emit_code(parser->emitter,parser->currentToken->text);
+    emit_code_line(parser->emitter,");");
+
     match(parser,IDENT);
   } else {
     printf("\tInvalid statement at %s (%s)\n", parser->currentToken->text, token_to_str(parser->currentToken->type));
