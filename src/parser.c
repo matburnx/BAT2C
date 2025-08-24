@@ -176,7 +176,7 @@ void nl(Parser * parser) {
 }
 
 void primary(Parser * parser) {
-  printf("PRIMARY: %s\n", parser->currentToken->text);
+  //printf("PRIMARY: %s\n", parser->currentToken->text);
   if(check_token(parser,NUMBER)){
     emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
@@ -195,7 +195,7 @@ void primary(Parser * parser) {
 }
 
 void unary(Parser * parser) {
-  printf("UNARY\n");
+  //printf("UNARY\n");
   if(check_token(parser,MINUS) || check_token(parser,PLUS)){
     emit_code(parser->emitter,parser->currentToken->text);
     next_token(parser);
@@ -204,7 +204,7 @@ void unary(Parser * parser) {
 }
 
 void term(Parser * parser) {
-  printf("TERM\n");
+  //printf("TERM\n");
   unary(parser);
   while(check_token(parser,ASTERISK) || check_token(parser,SLASH)){
     emit_code(parser->emitter,parser->currentToken->text);
@@ -214,7 +214,7 @@ void term(Parser * parser) {
 }
 
 void expression(Parser * parser) {
-  printf("EXPRESSION\n");
+  //printf("EXPRESSION\n");
   term(parser);
   while(check_token(parser,MINUS) || check_token(parser,PLUS)){
     emit_code(parser->emitter,parser->currentToken->text);
@@ -228,7 +228,7 @@ int is_comparison_operator(Parser * parser) {
 }
 
 void comparison(Parser * parser) {
-  printf("COMPARISON\n");
+  //printf("COMPARISON\n");
   expression(parser);
   if(is_comparison_operator(parser)) {
     emit_code(parser->emitter,parser->currentToken->text);
@@ -355,7 +355,7 @@ char * data_format(VariableList * var) {
 
 void statement(Parser * parser) {
   if(check_token(parser,PRINT)) {
-    printf("STATEMENT: PRINT\n");
+    //printf("STATEMENT: PRINT\n");
     if(!check_label(parser->headersInclude,"stdio")) {
       parser->headersInclude = add_label(parser->headersInclude,"stdio");
       char * tmp = strdup("#include <stdio.h>");
@@ -397,7 +397,7 @@ void statement(Parser * parser) {
       emit_code_line(parser->emitter,");");
     }
   } else if(check_token(parser,IF)) {
-    printf("STATEMENT: IF\n");
+    //printf("STATEMENT: IF\n");
     next_token(parser);
     emit_code(parser->emitter,"if(");
 
@@ -414,7 +414,7 @@ void statement(Parser * parser) {
     match(parser,ENDIF);
     emit_code_line(parser->emitter,"}");
   } else if(check_token(parser,WHILE)) {
-    printf("STATEMENT: WHILE\n");
+    //printf("STATEMENT: WHILE\n");
     next_token(parser);
     emit_code(parser->emitter,"while(");
 
@@ -431,7 +431,7 @@ void statement(Parser * parser) {
     match(parser,ENDWHILE);
     emit_code_line(parser->emitter,"}");
   } else if(check_token(parser,LABEL)) {
-    printf("STATEMENT: LABEL\n");
+    //printf("STATEMENT: LABEL\n");
     next_token(parser);
 
     if(check_label(parser->labelsDeclared,parser->currentToken->text)) {
@@ -445,7 +445,7 @@ void statement(Parser * parser) {
 
     match(parser,IDENT);
   } else if(check_token(parser,GOTO)) {
-    printf("STATEMENT: GOTO\n");
+    //printf("STATEMENT: GOTO\n");
     next_token(parser);
 
     parser->labelsGotoed = add_label(parser->labelsGotoed,parser->currentToken->text);
@@ -456,7 +456,7 @@ void statement(Parser * parser) {
 
     match(parser,IDENT);
   } else if(check_token(parser,LET)) {
-    printf("STATEMENT: LET\n");
+    //printf("STATEMENT: LET\n");
     next_token(parser);
     int has_type=1;
 
@@ -489,7 +489,7 @@ void statement(Parser * parser) {
 
     free(var_name);
   } else if(check_token(parser,INPUT)) {
-    printf("STATEMENT: INPUT\n");
+    //printf("STATEMENT: INPUT\n");
     next_token(parser);
     if(!check_label(parser->headersInclude,"stdio")) {
       parser->headersInclude = add_label(parser->headersInclude,"stdio");
@@ -530,7 +530,7 @@ void statement(Parser * parser) {
 }
 
 void program(Parser * parser) {
-  printf("PROGRAM\n");
+  //printf("PROGRAM\n");
 
   skip_newlines(parser);
   

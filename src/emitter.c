@@ -84,17 +84,17 @@ void emit_header_line(Emitter * emitter, char * header) {
 void write_file(Emitter * emitter) {
   FILE * file = fopen(emitter->path, "w");
   if(emitter->header) {
-    printf("header to file:\n%s", emitter->header);
+    //printf("header to file:\n%s", emitter->header);
     fprintf(file, "%s", emitter->header);
   }
 
   if(emitter->variables) {
-    printf("variables to file:\n%s", emitter->variables);
+    //printf("variables to file:\n%s", emitter->variables);
     fprintf(file, "%s", emitter->variables);
   }
 
   if(emitter->code) {
-    printf("code to file:\n%s", emitter->code);
+    //printf("code to file:\n%s", emitter->code);
     fprintf(file, "%s", emitter->code);
   }
   fclose(file);
