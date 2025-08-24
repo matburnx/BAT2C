@@ -1,4 +1,5 @@
 CC_OPTS=-Wall -Wextra -pedantic
+O_NAME=bat2c
 
 ifdef DEBUG
 	ifeq ($(DEBUG) ,1)
@@ -10,7 +11,7 @@ endif
 all: main
 
 main: main.o
-	gcc $(CC_OPTS) main.o emitter.o lexer.o parser.o -o main
+	gcc $(CC_OPTS) main.o emitter.o lexer.o parser.o -o $(O_NAME)
 
 lexer.o: src/lexer.c src/lexer.h parser.o emitter.o
 	gcc $(CC_OPTS) -c $< -o $@
