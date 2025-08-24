@@ -80,21 +80,24 @@ typedef struct _token {
   Token_type type;
 } Token;
 
-int countlines(char *filename);
+//int countlines(char *filename);
 int is_digit(char c);
 int is_alpha(char c);
 int is_alpha_numeric(char c);
 int is_keyword(char * str);
+
 Token_type str_to_token(char * str);
 char * token_to_str(Token_type type);
-void next_char(Lexer * lex);
-Token * init_token();
-Token * new_token(char * text, Token_type type);
-char peek(Lexer * lex);
-void skip_whitespace(Lexer * lex);
-void skip_comment(Lexer * lex);
-char * set_expression(Lexer* lex, const int text_size);
 
+//void next_char(Lexer * lex);
+
+//Token * init_token();
+Token * new_token(char * text, Token_type type);
+
+//char peek(Lexer * lex);
+//void skip_whitespace(Lexer * lex);
+//void skip_comment(Lexer * lex);
+//char * set_expression(Lexer* lex, const int text_size);
 
 Lexer * new_lexer(char * file_name);
 Token * get_token(Lexer * lex);

@@ -12,7 +12,7 @@ typedef struct _emitter {
   char * code;
 } Emitter;
 
-char * str_concat(const char * s1, const char * s2);
+//char * str_concat(const char * s1, const char * s2);
 
 Emitter * init_emitter(char * path);
 void free_emitter(Emitter * emitter);

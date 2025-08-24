@@ -29,9 +29,9 @@ typedef struct _parser {
   LabelList * headersInclude;
 } Parser;
 
-int check_token(Parser * parser, Token_type kind);
-int check_peek(Parser * parser, Token_type kind);
-void match(Parser * parser, Token_type kind);
+//int check_token(Parser * parser, Token_type kind);
+//int check_peek(Parser * parser, Token_type kind);
+//void match(Parser * parser, Token_type kind);
 
 Parser * init_parser(Lexer * lex, Emitter * emitter);
 void free_parser(Parser * parser);
@@ -39,21 +39,21 @@ void free_parser(Parser * parser);
 LabelList * new_label(char * text);
 void free_label_list(LabelList * list);
 
-LabelList * add_label(LabelList * list, char * text);
-int check_label(LabelList * list, char * text);
+//LabelList * add_label(LabelList * list, char * text);
+//int check_label(LabelList * list, char * text);
 
-void skip_newlines(Parser * parser);
-void nl(Parser * parser);
+//void skip_newlines(Parser * parser);
+//void nl(Parser * parser);
 
-void primary(Parser * parser);
-void unary(Parser * parser);
-void term(Parser * parser);
-void expression(Parser * parser);
-void comparison(Parser * parser);
+//void primary(Parser * parser);
+//void unary(Parser * parser);
+//void term(Parser * parser);
+//void expression(Parser * parser);
+//void comparison(Parser * parser);
 
-void add_variable_type(Parser * parser);
+//void add_variable_type(Parser * parser);
 
-void statement(Parser * parser);
+//void statement(Parser * parser);
 
 void program(Parser * parser);
 #endif
